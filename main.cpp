@@ -33,27 +33,35 @@ class Locacao {
         time_t dataDaRetirada;
         time_t dataDaDevolucao;
         int quantidadeDeOcupantes;
+        int totalDeDiarias = -1;
         bool seguro;
-        int totalDeDiarias;
+        bool invalida = false;
+        int valorPorDiaria = 25;
+        int valorTotalDaLocacao;
 
         void setDataDaRetirada();
         void setDataDaDevolucao(time_t dataDaRetirada_);
-        void setSeguro();
         void setQuantidadeDeOcupantes();
         void setTotalDeDiarias(time_t dataDaDevolucao_, time_t dataDaRetirada_);
+        void setSeguro();
+        void setInvalidar();
+
     public: 
         Locacao();
         Locacao(int codigoDoCliente_);
 
         void criarLocacao();
+        void terminarLocacao();
 
         int getCodigoLocacao();
         int getCodigoDoCliente();
         int getQuantidadeDeOcupantes();
+        int getTotalDeDiarias();
+        int getValorPorDiaria();
+        bool getSeguro();
+        bool getValidade();
         time_t getDataDaRetirada();
         time_t getDataDaDevolucao();
-        bool getSeguro();
-        int getTotalDeDiarias();
 
 };
 
@@ -103,6 +111,59 @@ void Locacao::criarLocacao() {
     cout << totalDeDiarias << endl;
 }
 
+void Locacao::terminarLocacao() {
+    cout << "Iniciando baixa na locação de codigo: " << codigoLocacao << endl;
+    if (totalDeDiarias == -1) {
+        cout << "É necessário criar uma locação para poder terminar-la";
+        return;
+    }
+
+    int totalDeDiarias_ = getTotalDeDiarias();
+    int valorPorDiaria_ = getValorPorDiaria();
+
+    valorTotalDaLocacao = valorPorDiaria_ + totalDeDiarias_;
+
+    if (seguro) {
+        valorTotalDaLocacao += 50;
+    }
+
+    cout << "Qual é a data da devolução do veiculo? " << endl;
+
+    int dia, mes, ano;
+
+    do {
+        cout << "Dia da devolução: ";
+        cin >> dia; 
+    } while (!((dia > 0) && (dia <= 31)));
+
+    do {
+        cout << "Mes da devolução: ";
+        cin >> mes;
+    } while (!((mes >= 1) && (mes <= 12)));
+    
+    do {
+        cout << "Ano da devolução: ";
+        cin >> ano;
+    } while (ano < 2022);
+
+    time_t dataDaDevolucao_ = dateToTimeT(dia, mes, ano);
+    double sec = difftime(dataDaDevolucao_, dataDaDevolucao); //Verifying the diference between the dates
+    long diasDeMulta = static_cast<long>(sec / (60 * 60 * 24));
+
+
+    if(diasDeMulta <= 0) {    
+        cout << "O total a ser pago é R$" << valorTotalDaLocacao << endl;        
+        return;
+    }
+
+    //? If there are more days, then
+    int cincoPorcento = valorTotalDaLocacao * 0.05;
+    valorTotalDaLocacao += cincoPorcento + (diasDeMulta * 30);
+
+    cout << "Com multa de " << diasDeMulta << " dias" << endl;
+    cout << "O total a ser pago é R$" << valorTotalDaLocacao << endl;        
+    return;
+}
 
 //! Setters
 void Locacao::setDataDaRetirada() {
@@ -203,6 +264,9 @@ void Locacao::setTotalDeDiarias(time_t dataDaDevolucao_, time_t dataDaRetirada_)
     totalDeDiarias = days;
 }
 
+void Locacao::setInvalidar() {
+    invalida = true;
+}
 
 //! Geters
 int Locacao::getCodigoLocacao() {
@@ -229,8 +293,16 @@ bool Locacao::getSeguro() {
     return seguro;
 }
 
+bool Locacao::getValidade() {
+    return invalida;
+}
+
 int Locacao::getTotalDeDiarias() {
     return totalDeDiarias;
+}
+
+int Locacao::getValorPorDiaria() {
+    return valorPorDiaria;
 }
 
 void incluirLocacao(Locacao locacao, FILE *file);
@@ -238,7 +310,11 @@ void listarLocacao(FILE *file);
 
 
 int main () {
-    Locacao location(33);
+    int codigoDoCLiente;
+    cout << "Qual é o codigo do cliente: ";
+    cin >> codigoDoCLiente;
+
+    Locacao location(codigoDoCLiente);
     FILE *file;
 
     if((file = fopen("locacao.db", "r+b")) == NULL) {
@@ -251,7 +327,7 @@ int main () {
     location.criarLocacao();
     incluirLocacao(location, file);
     listarLocacao(file);
-
+    location.terminarLocacao();
 }
 
 
